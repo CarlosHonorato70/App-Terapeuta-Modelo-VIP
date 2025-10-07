@@ -78,14 +78,27 @@
             font-family: 'Roboto', sans-serif;
         }
 
+        /* Estilo para o botão de desativar (limpar seleção) */
         .clear-button {
-            background-color: var(--danger-button);
+            background-color: #6c757d; /* Cinza para desativação */
             color: white;
             border: none;
             padding: 5px 10px;
             border-radius: 4px;
             cursor: pointer;
             margin-left: 15px;
+            font-size: 14px;
+        }
+
+        /* Estilo para o novo botão de exclusão */
+        .delete-button {
+            background-color: var(--danger-button);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 10px; /* Espaçamento entre os botões */
             font-size: 14px;
         }
         
@@ -127,6 +140,13 @@
 
         .patient-item:hover {
             background-color: var(--light-background-blue);
+        }
+
+        /* Para alinhar os botões "Selecionar" e "Excluir" */
+        .patient-item > div {
+            display: flex;
+            align-items: center;
+            gap: 5px; 
         }
 
         .clinical-dashboard {
@@ -211,7 +231,7 @@
         <div id="currentPatientInfo">
             <p>Paciente Ativo: <span id="activePatientName"></span></p>
             <p>ID: <span id="activePatientId"></span></p>
-            <button class="clear-button" onclick="clearActivePatient()">Limpar Paciente</button>
+            <button class="clear-button" onclick="clearActivePatient()">Desativar Paciente</button>
         </div>
 
         <div class="nav-buttons">
@@ -239,7 +259,8 @@
                 <label for="protocolSelect">Selecione o Protocolo:</label>
                 <select id="protocolSelect" onchange="selectProtocol(this.value)">
                     <option value="Nenhum">Nenhum Selecionado</option>
-                    <option value="Anamnese">Anamnese / Fase de Avaliação</option> <option value="TEPT">TEPT (20-24 Sessões)</option>
+                    <option value="Anamnese">Anamnese / Fase de Avaliação</option> 
+                    <option value="TEPT">TEPT (20-24 Sessões)</option>
                     <option value="TAG">Ansiedade Generalizada (TAG)</option>
                     <option value="DEPRESSAO">Depressão</option>
                     <option value="CUSTOM">Protocolo Personalizado</option>
@@ -273,7 +294,8 @@
                     <label for="interventionSelect">Intervenção Aplicada (B.3):</label>
                     <select id="interventionSelect" onchange="displaySelectedProtocol(this.value)" required>
                         <option value="">Selecione a Técnica...</option>
-                        <option value="EntrevistaInicial">Entrevista Inicial / Coleta de Dados</option> <option value="Psicoeducacao">Psicoeducação: Modelo VIP (B.4)</option>
+                        <option value="EntrevistaInicial">Entrevista Inicial / Coleta de Dados</option> 
+                        <option value="Psicoeducacao">Psicoeducação: Modelo VIP (B.4)</option>
                         <option value="Mindfulness">Mindfulness/Regulação (B.3.2)</option>
                         <option value="RC">Reestruturação Cognitiva (RC, B.3.3)</option>
                         <option value="Exposicao">Exposição/Processamento (B.2.1.3)</option>
@@ -337,7 +359,7 @@
                 3. **História do Problema:** Quando começou? O que já foi tentado?
                 4. **Objetivos:** O que ele espera da terapia? (Definição de metas SMART/VIP).
                 5. **Avaliação de Risco:** Rastreamento de ideação suicida/homicida e rede de apoio.
-            `, // NOVO SCRIPT
+            `, 
             Psicoeducacao: `
                 <h4>Psicoeducação: Introdução ao Modelo VIP (B.4.1)</h4>
                 1. Introdução: Apresente o trabalho como uma parceria.
@@ -471,7 +493,7 @@
         }
         
         // =================================================================================
-        // FUNÇÕES DE GERENCIAMENTO E LÓGICA EXISTENTES
+        // FUNÇÕES DE GERENCIAMENTO E LÓGICA
         // =================================================================================
         
         let patients = [];
@@ -492,7 +514,6 @@
             }));
         }
 
-        // CORREÇÃO: Garante que a lista de pacientes seja renderizada APÓS salvar
         function savePatients() {
             localStorage.setItem('patients', JSON.stringify(patients));
             renderPatientList(); 
@@ -529,6 +550,22 @@
             document.querySelector('.nav-button[data-target="patientsSection"]').classList.add('active');
         }
 
+        // NOVA FUNÇÃO: Excluir paciente permanentemente
+        function deletePatient(id) {
+            if (confirm("ATENÇÃO: Você tem certeza que deseja EXCLUIR permanentemente este paciente e todos os seus registros de sessão? Esta ação não pode ser desfeita.")) {
+                // 1. Filtra a lista para remover o paciente
+                patients = patients.filter(p => p.id !== id);
+                
+                // 2. Verifica se o paciente excluído era o ativo
+                if (activePatient && activePatient.id === id) {
+                    clearActivePatient();
+                }
+
+                // 3. Salva a lista atualizada e re-renderiza
+                savePatients(); 
+            }
+        }
+
         function renderPatientList() {
             const list = document.getElementById('patientList');
             list.innerHTML = '';
@@ -538,7 +575,10 @@
                 item.className = 'patient-item';
                 item.innerHTML = `
                     <span>${patient.name}</span>
-                    <button onclick="setActivePatient('${patient.id}')">Selecionar</button>
+                    <div>
+                        <button onclick="setActivePatient('${patient.id}')">Selecionar</button>
+                        <button class="delete-button" onclick="deletePatient('${patient.id}')">Excluir</button>
+                    </div>
                 `;
                 list.appendChild(item);
             });
@@ -552,7 +592,7 @@
 
             const protocolConfig = {
                 'Nenhum': { name: 'Nenhum', phase: 0, totalSessions: 'N/A', focus: 'N/A' },
-                'Anamnese': { name: 'Anamnese', phase: 1, totalSessions: 3, focus: 'Fase 1: Coleta de História e Aliança' }, // NOVO PROTOCOLO
+                'Anamnese': { name: 'Anamnese', phase: 1, totalSessions: 3, focus: 'Fase 1: Coleta de História e Aliança' }, 
                 'TEPT': { name: 'TEPT', phase: 1, totalSessions: 24, focus: 'Fase 1: Estabilização (S. 1-8)' },
                 'TAG': { name: 'TAG', phase: 1, totalSessions: 12, focus: 'Etapa 1: Psicoeducação/Vigilância' },
                 'DEPRESSAO': { name: 'DEPRESSAO', phase: 1, totalSessions: 16, focus: 'Fase 1: Ativação Comportamental' },
@@ -589,7 +629,7 @@
                 return;
             }
 
-            // NOVOS CAMPOS DE DATA E HORA
+            // CAMPOS DE DATA E HORA
             const sessionDate = document.getElementById('sessionDateInput').value;
             const startTime = document.getElementById('startTimeInput').value;
             const endTime = document.getElementById('endTimeInput').value;
@@ -637,9 +677,9 @@
             // ===================================================
 
             const sessionData = {
-                date: sessionDate, // Armazena a data informada pelo usuário
-                startTime: startTime, // Armazena a hora de início
-                endTime: endTime, // Armazena a hora de fim
+                date: sessionDate, 
+                startTime: startTime, 
+                endTime: endTime, 
                 sessionNumber: activePatient.protocol.sessionCount + 1,
                 intervention: intervention,
                 sudsStart: sudsStart,
@@ -705,7 +745,7 @@
                     currentPhase = `Fase 2: Modificação de Padrões (${p.sessionCount}/14)`;
                     nextFocus = 'Imagery Rescripting (Memórias Depressogênicas)';
                 }
-            } else if (p.name === 'Anamnese') { // NOVO DASHBOARD
+            } else if (p.name === 'Anamnese') { 
                 currentPhase = `Fase de Avaliação (${p.sessionCount}/${p.totalSessions})`;
                 if (p.sessionCount < p.totalSessions) {
                     nextFocus = 'Continuar Coleta: História de Vida e Recursos';
