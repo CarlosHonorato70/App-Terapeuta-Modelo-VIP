@@ -17,6 +17,7 @@
             --success-button: #28a745; 
             --danger-button: #dc3545; 
             --warning-color: #ffc107; 
+            --info-color: #17a2b8; /* Novo para o botão de backup/importação */
         }
 
         body {
@@ -65,17 +66,19 @@
         }
 
         #currentPatientInfo {
-            display: none;
+            display: flex;
+            align-items: center;
             background-color: var(--light-background-blue);
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-
         #currentPatientInfo p {
-            margin: 5px 0;
-            font-family: 'Roboto', sans-serif;
+             margin: 5px 20px 5px 0;
+             font-family: 'Roboto', sans-serif;
+             font-size: 1.1em;
+             flex-shrink: 0;
         }
 
         /* Estilo para o botão de desativar (limpar seleção) */
@@ -98,8 +101,27 @@
             padding: 5px 10px;
             border-radius: 4px;
             cursor: pointer;
-            margin-left: 10px; /* Espaçamento entre os botões */
+            margin-left: 10px; 
             font-size: 14px;
+        }
+
+        /* Novo estilo para o botão de Backup */
+        .backup-button {
+            background-color: var(--info-color); /* Azul Claro/Ciano */
+            margin-top: 10px;
+            padding: 10px 15px;
+        }
+        .backup-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px dashed #ccc;
+            border-radius: 6px;
+            align-items: center;
+        }
+        .backup-group input[type="file"] {
+            display: none; /* Esconde o input file nativo */
         }
         
         input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea {
@@ -214,7 +236,7 @@
         /* NOVO ESTILO PARA O GRÁFICO */
         .chart-container {
             position: relative; 
-            height: 300px; /* Altura fixa para o gráfico */
+            height: 300px; 
             width: 100%;
             margin-top: 20px;
             padding-top: 10px;
@@ -228,7 +250,7 @@
     </header>
 
     <div class="container">
-        <div id="currentPatientInfo">
+        <div id="currentPatientInfo" style="display: none;">
             <p>Paciente Ativo: <span id="activePatientName"></span></p>
             <p>ID: <span id="activePatientId"></span></p>
             <button class="clear-button" onclick="clearActivePatient()">Desativar Paciente</button>
@@ -246,6 +268,15 @@
                 <button type="submit">Adicionar Paciente</button>
             </form>
 
+            <div class="backup-group">
+                <button class="backup-button" onclick="exportData()">Exportar Backup (JSON)</button>
+                <label for="importFile" class="backup-button" style="cursor: pointer; background-color: var(--success-button);">
+                    Importar Backup/Restaurar
+                </label>
+                <input type="file" id="importFile" accept=".json" onchange="reimportData(event)">
+                <span style="font-size: 0.9em; color: #555;">Use para restaurar dados de um backup salvo.</span>
+            </div>
+            
             <h3>Lista de Pacientes</h3>
             <div id="patientList">
                 </div>
@@ -402,98 +433,70 @@
         };
 
         // =================================================================================
-        // FUNÇÃO DE EXIBIÇÃO DE PROTOCOLO
+        // FUNÇÕES DE BACKUP E RESTAURAÇÃO (NOVAS)
         // =================================================================================
-        function displaySelectedProtocol(techniqueKey) {
-            const displayBox = document.getElementById('protocolGuideDisplay');
-            
-            if (techniqueKey && protocolScripts[techniqueKey]) {
-                displayBox.innerHTML = protocolScripts[techniqueKey];
-                displayBox.style.display = 'block';
-            } else {
-                displayBox.style.display = 'none';
-                displayBox.innerHTML = '';
-            }
-        }
-        
-        // =================================================================================
-        // FUNÇÃO PARA RENDERIZAR O GRÁFICO DE S.U.D.s
-        // =================================================================================
-        function renderSudsChart() {
-            if (!activePatient || activePatient.sessionHistory.length === 0) {
-                // Destrói o gráfico se existir e não houver dados
-                if (sudsChartInstance) {
-                    sudsChartInstance.destroy();
-                    sudsChartInstance = null;
-                }
+
+        function exportData() {
+            const dataToExport = localStorage.getItem('patients');
+            if (!dataToExport) {
+                alert('Não há dados de pacientes para exportar.');
                 return;
             }
 
-            // Inverte o histórico para que o gráfico mostre a ordem correta das sessões
-            const sortedHistory = [...activePatient.sessionHistory].reverse();
-
-            const sessionLabels = sortedHistory.map(s => `Sessão ${s.sessionNumber}`);
-            const sudsStartData = sortedHistory.map(s => s.sudsStart);
-            const sudsEndData = sortedHistory.map(s => s.sudsEnd);
+            const filename = `backup_vip_pacientes_${new Date().toISOString().slice(0, 10)}.json`;
+            const blob = new Blob([dataToExport], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
             
-            const ctx = document.getElementById('sudsChart').getContext('2d');
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            alert(`Backup de ${patients.length} pacientes exportado com sucesso como "${filename}". Salve-o em local seguro!`);
+        }
 
-            // Destrói a instância anterior do gráfico antes de criar uma nova
-            if (sudsChartInstance) {
-                sudsChartInstance.destroy();
+        function reimportData(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
             }
 
-            sudsChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: sessionLabels,
-                    datasets: [{
-                        label: 'S.U.D.s Início da Intervenção',
-                        data: sudsStartData,
-                        borderColor: 'rgb(255, 99, 132)', // Vermelho
-                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
-                        borderWidth: 2,
-                        tension: 0.3
-                    }, {
-                        label: 'S.U.D.s Fim da Intervenção',
-                        data: sudsEndData,
-                        borderColor: 'rgb(54, 162, 235)', // Azul
-                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                        borderWidth: 2,
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            min: 0,
-                            max: 10,
-                            ticks: {
-                                stepSize: 1
-                            },
-                            title: {
-                                display: true,
-                                text: 'Nível de Perturbação (0-10)'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            position: 'top',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Evolução dos S.U.D.s por Sessão (B.1.1)'
-                        }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+
+                    if (!Array.isArray(importedData)) {
+                        throw new Error('Formato de arquivo JSON inválido. O arquivo deve conter uma lista de pacientes.');
                     }
+                    
+                    if (importedData.length > 0 && !confirm(`ATENÇÃO: Este processo IRÁ SUBSTITUIR os ${patients.length} pacientes atuais pelos ${importedData.length} pacientes do arquivo de backup. Deseja continuar?`)) {
+                        event.target.value = ''; // Limpa o input file
+                        return;
+                    }
+
+                    // Limpa o localStorage e importa os novos dados
+                    localStorage.setItem('patients', JSON.stringify(importedData));
+                    localStorage.removeItem('activePatientId'); // Limpa paciente ativo para evitar conflitos de ID
+                    
+                    loadPatients();
+                    clearActivePatient(); // Redefine a interface
+                    alert('Dados importados e restaurados com sucesso! O aplicativo será recarregado.');
+                    window.location.reload(); // Recarrega a página para garantir que todos os estados sejam atualizados
+
+                } catch (error) {
+                    alert('Erro ao importar o arquivo. Certifique-se de que é um arquivo JSON de backup válido.\nDetalhes: ' + error.message);
+                    event.target.value = '';
                 }
-            });
+            };
+            reader.readAsText(file);
         }
         
         // =================================================================================
-        // FUNÇÕES DE GERENCIAMENTO E LÓGICA
+        // FUNÇÕES DE GERENCIAMENTO E LÓGICA EXISTENTES
         // =================================================================================
         
         let patients = [];
@@ -550,7 +553,6 @@
             document.querySelector('.nav-button[data-target="patientsSection"]').classList.add('active');
         }
 
-        // NOVA FUNÇÃO: Excluir paciente permanentemente
         function deletePatient(id) {
             if (confirm("ATENÇÃO: Você tem certeza que deseja EXCLUIR permanentemente este paciente e todos os seus registros de sessão? Esta ação não pode ser desfeita.")) {
                 // 1. Filtra a lista para remover o paciente
@@ -769,7 +771,7 @@
                 document.getElementById('dashboardSudsAverage').textContent = 'N/A';
             }
             
-            // CHAMADA DO NOVO GRÁFICO
+            // CHAMADA DO GRÁFICO
             renderSudsChart();
 
             const historyList = document.getElementById('sessionHistoryList');
@@ -811,6 +813,9 @@
             document.querySelector(`.nav-button[data-target="${targetId}"]`).classList.add('active');
         }
 
+        // =================================================================================
+        // INICIALIZAÇÃO E AVISO AO SAIR (BACKUP WARNING)
+        // =================================================================================
 
         document.addEventListener('DOMContentLoaded', () => {
             loadPatients();
@@ -821,7 +826,6 @@
                 const foundPatient = patients.find(p => p.id === storedActivePatientId);
                 if (foundPatient) {
                     setActivePatient(foundPatient.id);
-                    // Garante que o painel clínico seja visível se um paciente ativo for carregado
                     document.querySelectorAll('.conditional-nav-button').forEach(button => {
                         button.style.display = 'inline-block';
                     });
@@ -859,12 +863,20 @@
                 });
             });
 
-            // Pré-preencher a data com a data de hoje, para conveniência
             const dateInput = document.getElementById('sessionDateInput');
             if (dateInput) {
                 dateInput.valueAsDate = new Date();
             }
-
+        });
+        
+        // NOVO: Aviso de backup ao tentar fechar/sair da página
+        window.addEventListener('beforeunload', function(e) {
+            // Se houver pacientes registrados, emite o alerta
+            if (patients.length > 0) {
+                const confirmationMessage = 'Seus dados de pacientes estão salvos APENAS neste navegador (localStorage). Confirme que você fez um backup recente antes de sair, ou você corre o risco de perder as informações. Deseja realmente sair?';
+                e.returnValue = confirmationMessage; 
+                return confirmationMessage;
+            }
         });
     </script>
 </body>
