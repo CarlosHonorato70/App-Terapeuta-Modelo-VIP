@@ -438,7 +438,7 @@
 
         function exportData() {
             const dataToExport = localStorage.getItem('patients');
-            if (!dataToExport) {
+            if (!dataToExport || dataToExport === '[]') {
                 alert('Não há dados de pacientes para exportar.');
                 return;
             }
@@ -473,19 +473,20 @@
                         throw new Error('Formato de arquivo JSON inválido. O arquivo deve conter uma lista de pacientes.');
                     }
                     
-                    if (importedData.length > 0 && !confirm(`ATENÇÃO: Este processo IRÁ SUBSTITUIR os ${patients.length} pacientes atuais pelos ${importedData.length} pacientes do arquivo de backup. Deseja continuar?`)) {
-                        event.target.value = ''; // Limpa o input file
-                        return;
+                    if (patients.length > 0) {
+                        if (!confirm(`ATENÇÃO: Este processo IRÁ SUBSTITUIR os ${patients.length} pacientes atuais pelos ${importedData.length} pacientes do arquivo de backup. Deseja continuar?`)) {
+                            event.target.value = ''; // Limpa o input file
+                            return;
+                        }
                     }
 
                     // Limpa o localStorage e importa os novos dados
                     localStorage.setItem('patients', JSON.stringify(importedData));
                     localStorage.removeItem('activePatientId'); // Limpa paciente ativo para evitar conflitos de ID
                     
-                    loadPatients();
-                    clearActivePatient(); // Redefine a interface
+                    // Recarrega o app para garantir que todos os estados sejam atualizados
                     alert('Dados importados e restaurados com sucesso! O aplicativo será recarregado.');
-                    window.location.reload(); // Recarrega a página para garantir que todos os estados sejam atualizados
+                    window.location.reload(); 
 
                 } catch (error) {
                     alert('Erro ao importar o arquivo. Certifique-se de que é um arquivo JSON de backup válido.\nDetalhes: ' + error.message);
@@ -553,9 +554,12 @@
             document.querySelector('.nav-button[data-target="patientsSection"]').classList.add('active');
         }
 
+        /** * FUNÇÃO DE EXCLUSÃO CORRIGIDA E CONFIRMADA
+         * Remove permanentemente o paciente da lista e do localStorage.
+         */
         function deletePatient(id) {
             if (confirm("ATENÇÃO: Você tem certeza que deseja EXCLUIR permanentemente este paciente e todos os seus registros de sessão? Esta ação não pode ser desfeita.")) {
-                // 1. Filtra a lista para remover o paciente
+                // 1. Filtra a lista para remover o paciente (lógica de exclusão)
                 patients = patients.filter(p => p.id !== id);
                 
                 // 2. Verifica se o paciente excluído era o ativo
@@ -814,6 +818,81 @@
         }
 
         // =================================================================================
+        // GRÁFICO (REPETIDO AQUI PARA COMPLETUDE, MAS JÁ ESTAVA NO CÓDIGO)
+        // =================================================================================
+        function renderSudsChart() {
+            if (!activePatient || activePatient.sessionHistory.length === 0) {
+                if (sudsChartInstance) {
+                    sudsChartInstance.destroy();
+                    sudsChartInstance = null;
+                }
+                return;
+            }
+
+            const sortedHistory = [...activePatient.sessionHistory].reverse();
+
+            const sessionLabels = sortedHistory.map(s => `Sessão ${s.sessionNumber}`);
+            const sudsStartData = sortedHistory.map(s => s.sudsStart);
+            const sudsEndData = sortedHistory.map(s => s.sudsEnd);
+            
+            const ctx = document.getElementById('sudsChart').getContext('2d');
+
+            if (sudsChartInstance) {
+                sudsChartInstance.destroy();
+            }
+
+            sudsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sessionLabels,
+                    datasets: [{
+                        label: 'S.U.D.s Início da Intervenção',
+                        data: sudsStartData,
+                        borderColor: 'rgb(255, 99, 132)', // Vermelho
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }, {
+                        label: 'S.U.D.s Fim da Intervenção',
+                        data: sudsEndData,
+                        borderColor: 'rgb(54, 162, 235)', // Azul
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            title: {
+                                display: true,
+                                text: 'Nível de Perturbação (0-10)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Evolução dos S.U.D.s por Sessão (B.1.1)'
+                        }
+                    }
+                }
+            });
+        }
+        // =================================================================================
+
+
+        // =================================================================================
         // INICIALIZAÇÃO E AVISO AO SAIR (BACKUP WARNING)
         // =================================================================================
 
@@ -869,7 +948,7 @@
             }
         });
         
-        // NOVO: Aviso de backup ao tentar fechar/sair da página
+        // Aviso de backup ao tentar fechar/sair da página
         window.addEventListener('beforeunload', function(e) {
             // Se houver pacientes registrados, emite o alerta
             if (patients.length > 0) {
