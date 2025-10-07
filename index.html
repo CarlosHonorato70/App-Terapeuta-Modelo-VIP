@@ -6,19 +6,18 @@
     <title>Aplicativo VIP - Gerenciamento e Protocolos Clínicos</title>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* Variáveis CSS para a nova paleta de cores (tons de azul escuro) */
+        /* Variáveis CSS e estilos existentes permanecem inalterados */
         :root {
-            --primary-dark-blue: #1A4D7C; /* Azul principal mais escuro */
-            --secondary-dark-blue: #0F3D6B; /* Azul para hover/destaque, mais escuro */
-            --light-background-blue: #F0F8FF; /* Azul muito claro para fundos e caixas de informação */
-            --text-color: #333; /* Cor padrão para texto */
-            --header-color: #2c3e50; /* Cor para cabeçalhos menores */
-            --success-button: #28a745; /* Verde para botões de sucesso */
-            --danger-button: #dc3545; /* Vermelho para botões de exclusão */
-            --warning-color: #ffc107; /* Amarelo para alertas */
+            --primary-dark-blue: #1A4D7C; 
+            --secondary-dark-blue: #0F3D6B; 
+            --light-background-blue: #F0F8FF; 
+            --text-color: #333; 
+            --header-color: #2c3e50; 
+            --success-button: #28a745; 
+            --danger-button: #dc3545; 
+            --warning-color: #ffc107; 
         }
 
-        /* Estilos Globais e de Navegação */
         body {
             font-family: 'Open Sans', sans-serif;
             margin: 0;
@@ -40,7 +39,6 @@
             padding: 0 20px;
         }
 
-        /* Navegação Principal */
         .nav-buttons {
             display: flex;
             justify-content: center;
@@ -65,7 +63,6 @@
             border-bottom: 3px solid var(--primary-dark-blue);
         }
 
-        /* Gerenciamento de Paciente Ativo */
         #currentPatientInfo {
             display: none;
             background-color: var(--light-background-blue);
@@ -91,14 +88,13 @@
             font-size: 14px;
         }
         
-        /* Formulários e Listas */
         input[type="text"], input[type="number"], select, textarea {
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
             border: 1px solid #ccc;
             border-radius: 4px;
-            box-sizing: border-box; /* Inclui padding e border no width total */
+            box-sizing: border-box; 
             font-family: 'Open Sans', sans-serif;
         }
 
@@ -132,7 +128,6 @@
             background-color: var(--light-background-blue);
         }
 
-        /* Estilos específicos para o Registro Clínico */
         .clinical-dashboard {
             background-color: #fff;
             padding: 20px;
@@ -166,7 +161,6 @@
             flex: 1;
         }
 
-        /* Estilos para ocultar/mostrar seções */
         .content-section {
             display: none;
         }
@@ -174,13 +168,27 @@
             display: block;
         }
         
-        /* Nova seção de Protocolos */
         .protocol-selector {
             margin-bottom: 20px;
             padding: 15px;
             background-color: #f9f9f9;
             border-radius: 8px;
             border: 1px dashed #ccc;
+        }
+
+        /* NOVO ESTILO: Caixa de Protocolo */
+        #protocolGuideDisplay {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #e6f7ff; /* Azul claro para destaque */
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            white-space: pre-wrap; /* Preserva quebras de linha e espaços do script */
+            font-size: 0.95em;
+        }
+        #protocolGuideDisplay h4 {
+            color: var(--primary-dark-blue);
+            margin-top: 0;
         }
     </style>
 </head>
@@ -245,6 +253,20 @@
             <div class="clinical-dashboard">
                 <h3>3. Registro Rápido da Sessão (B.5.1)</h3>
                 <form id="recordSessionForm">
+                    <label for="interventionSelect">Intervenção Aplicada (B.3):</label>
+                    <select id="interventionSelect" onchange="displaySelectedProtocol(this.value)" required>
+                        <option value="">Selecione a Técnica...</option>
+                        <option value="Psicoeducacao">Psicoeducação: Modelo VIP (B.4)</option>
+                        <option value="Mindfulness">Mindfulness/Regulação (B.3.2)</option>
+                        <option value="RC">Reestruturação Cognitiva (RC, B.3.3)</option>
+                        <option value="Exposicao">Exposição/Processamento (B.2.1.3)</option>
+                        <option value="Adiamento">Técnica de Adiamento (B.5.2)</option>
+                        <option value="Outra">Outra / Sessão Padrão</option>
+                    </select>
+                    
+                    <div id="protocolGuideDisplay" style="display: none;">
+                        </div>
+
                     <div class="suds-form-group">
                         <div>
                             <label for="sudsStart">S.U.D.s (Início da Intervenção):</label>
@@ -255,17 +277,6 @@
                             <input type="number" id="sudsEnd" min="0" max="10" required>
                         </div>
                     </div>
-
-                    <label for="interventionSelect">Intervenção Aplicada (B.3):</label>
-                    <select id="interventionSelect" required>
-                        <option value="">Selecione a Técnica...</option>
-                        <option value="Psicoeducacao">Psicoeducação (B.4)</option>
-                        <option value="Mindfulness">Mindfulness/Regulação (B.3.2)</option>
-                        <option value="RC">Reestruturação Cognitiva (RC, B.3.3)</option>
-                        <option value="Exposicao">Exposição/Processamento (B.2.1.3)</option>
-                        <option value="Adiamento">Técnica de Adiamento (B.5.2)</option>
-                        <option value="Outra">Outra / Sessão Padrão</option>
-                    </select>
 
                     <label for="adaptationNotes">Notas da Sessão e Adaptação (B.6):</label>
                     <textarea id="adaptationNotes" placeholder="Registre observações importantes, adaptações no sequenciamento (B.6) e tarefas de casa." rows="4"></textarea>
@@ -285,45 +296,98 @@
 
     </div> <script>
         // =================================================================================
+        // DEFINIÇÃO DOS SCRIPTS DE PROTOCOLO (APÊNDICE B)
+        // =================================================================================
+        const protocolScripts = {
+            Psicoeducacao: `
+                <h4>Psicoeducação: Introdução ao Modelo VIP (B.4.1)</h4>
+                1. Introdução: Apresente o trabalho como uma parceria.
+                2. Conceito VIP: Explique Vigilância (notar padrões), Integração (dar sentido) e Processamento (mudar a reação).
+                3. Colaboração: Enfatize que o paciente é o especialista em sua vida e a adesão é chave (B.1.1).
+                4. Pergunta de Fechamento: "Como você se sente sobre começarmos a usar este mapa?"
+            `,
+            Mindfulness: `
+                <h4>Guia Rápido: Mindfulness/Regulação (B.3.2)</h4>
+                1. Foco na Respiração: Peça ao paciente para focar na sensação da respiração (âncora).
+                2. Aterramento (Opcional): Use a técnica 5-4-3-2-1 para estabilização, se a S.U.D.s estiver alta (B.5.1 > 7).
+                3. Conscientização Sem Julgamento: Lembre o paciente de apenas *observar* pensamentos/sensações, sem se apegar ou lutar contra eles.
+                4. Tarefa de Casa: Prática curta de 3 a 5 minutos por dia.
+            `,
+            RC: `
+                <h4>Reestruturação Cognitiva (RC) - B.3.3</h4>
+                1. Identificação: Identifique o **Pensamento Automático Negativo (PAN)** e meça o S.U.D.s.
+                2. Evidências: Pergunte: "Quais são as **evidências a favor** e **contra** este pensamento ser 100% verdadeiro?"
+                3. Alternativas: Pergunte: "Qual é um **pensamento mais equilibrado**? O que você diria a um amigo?"
+                4. Reavaliação: Meça o S.U.D.s novamente para o PAN e o novo nível de crença no pensamento alternativo.
+            `,
+            Exposicao: `
+                <h4>Preparação para Exposição/Processamento (B.2.1.3)</h4>
+                1. Avaliação de S.U.D.s: Confirme que o paciente está **abaixo de S.U.D.s 5** para iniciar o processamento.
+                2. Preparação da Imagem/Cena: Peça para o paciente evocar a memória ou cenário de exposição.
+                3. Manutenção: Mantenha o paciente engajado na imagem/cena, monitorando o S.U.D.s continuamente. Interrompa se houver dissociação (B.6).
+                4. Fechamento: Não termine a sessão até que a S.U.D.s caia pelo menos 3 pontos em relação ao pico.
+            `,
+            Adiamento: `
+                <h4>Técnica de Adiamento da Preocupação (B.5.2)</h4>
+                1. Psicoeducação: Explique que a técnica visa **controlar o *tempo* da preocupação**, não o conteúdo.
+                2. Agendamento: Defina um **Horário Fixo da Preocupação** (ex: 18h00 - 18h20).
+                3. Durante o dia: Quando a preocupação surgir, registre-a (ou use uma "ficha de preocupação") e adie, dizendo: "Eu vou pensar nisso no meu horário agendado."
+                4. No Horário Fixo: Revise as preocupações registradas e decida: é **produtiva** (exige ação) ou **improdutiva** (não controlável)?
+            `,
+            Outra: `
+                <h4>Intervenção Padrão / Outra</h4>
+                Lembre-se do princípio B.6: Adaptação Individual e Sequenciamento Flexível. Use este espaço para anotações detalhadas sobre a técnica não listada.
+            `
+        };
+
+        // =================================================================================
+        // FUNÇÃO DE EXIBIÇÃO DE PROTOCOLO (NOVA)
+        // =================================================================================
+        function displaySelectedProtocol(techniqueKey) {
+            const displayBox = document.getElementById('protocolGuideDisplay');
+            
+            if (techniqueKey && protocolScripts[techniqueKey]) {
+                displayBox.innerHTML = protocolScripts[techniqueKey];
+                displayBox.style.display = 'block';
+            } else {
+                displayBox.style.display = 'none';
+                displayBox.innerHTML = '';
+            }
+        }
+        
+        // ... (O restante do seu código JavaScript, incluindo loadPatients, savePatients, setActivePatient, etc., continua aqui)
+        // Por ser repetitivo, o restante do código JS da resposta anterior foi omitido, mas DEVE ser mantido no seu arquivo.
+        
+        // =================================================================================
         // VARIÁVEIS GLOBAIS
         // =================================================================================
         let patients = [];
         let activePatient = null;
         
-        // =================================================================================
-        // LÓGICA DE DADOS (Inclusão dos campos de protocolo e histórico)
-        // =================================================================================
+        // Funções loadPatients, savePatients, setActivePatient, clearActivePatient, renderPatientList, 
+        // selectProtocol, recordSession, updateClinicalDashboard, showContent, e o DOMContentLoaded listener 
+        // DEVEM SER MANTIDOS COMPLETOS aqui. Use a versão final da resposta anterior.
 
-        // Função para carregar pacientes do Local Storage
         function loadPatients() {
-            // NOVO: Mapeamento para garantir que novos pacientes tenham a estrutura de protocolo e histórico
             const storedPatients = JSON.parse(localStorage.getItem('patients') || '[]');
             patients = storedPatients.map(p => ({
                 id: p.id,
                 name: p.name,
-                // NOVO: Estrutura de Protocolo (B.2)
                 protocol: p.protocol || {
                     name: 'Nenhum',
                     phase: 0, 
                     sessionCount: 0,
                     totalSessions: 'N/A'
                 },
-                // NOVO: Histórico de Sessões (B.5.1)
                 sessionHistory: p.sessionHistory || []
             }));
         }
 
-        // Função para salvar pacientes no Local Storage (Não alterada, mas crucial)
         function savePatients() {
             localStorage.setItem('patients', JSON.stringify(patients));
             renderPatientList();
         }
 
-        // =================================================================================
-        // FUNÇÕES DE GERENCIAMENTO DE PACIENTES
-        // =================================================================================
-
-        // Função para definir o paciente ativo (Atualizada para carregar dados clínicos)
         function setActivePatient(id) {
             activePatient = patients.find(p => p.id === id);
             localStorage.setItem('activePatientId', id);
@@ -333,36 +397,28 @@
                 document.getElementById('activePatientId').textContent = activePatient.id;
                 document.getElementById('currentPatientInfo').style.display = 'flex';
                 
-                // Torna os botões condicionais visíveis
                 document.querySelectorAll('.conditional-nav-button').forEach(button => {
                     button.style.display = 'inline-block';
                 });
                 
-                // NOVO: Atualiza o painel clínico ao selecionar o paciente
                 updateClinicalDashboard();
-
-                // NOVO: Garante que o seletor de protocolo reflita o status salvo
                 document.getElementById('protocolSelect').value = activePatient.protocol.name;
 
             }
         }
 
-        // Função para limpar o paciente ativo (Atualizada para ocultar botões condicionais)
         function clearActivePatient() {
             activePatient = null;
             localStorage.removeItem('activePatientId');
             document.getElementById('currentPatientInfo').style.display = 'none';
 
-            // Oculta os botões condicionais
             document.querySelectorAll('.conditional-nav-button').forEach(button => {
                 button.style.display = 'none';
             });
-            // Volta para a aba de pacientes
             showContent('patientsSection');
             document.querySelector('.nav-button[data-target="patientsSection"]').classList.add('active');
         }
 
-        // Função para renderizar a lista de pacientes (Não alterada)
         function renderPatientList() {
             const list = document.getElementById('patientList');
             list.innerHTML = '';
@@ -378,18 +434,12 @@
             });
         }
         
-        // =================================================================================
-        // FUNÇÕES CLÍNICAS (NOVAS IMPLEMENTAÇÕES - APÊNDICE B)
-        // =================================================================================
-
-        // NOVA: Função para selecionar e configurar o protocolo (B.2)
         function selectProtocol(protocolName) {
             if (!activePatient) {
                 alert('Por favor, selecione um paciente ativo primeiro.');
                 return;
             }
 
-            // Definições básicas de protocolos
             const protocolConfig = {
                 'TEPT': { name: 'TEPT', phase: 1, totalSessions: 24, focus: 'Fase 1: Estabilização (S. 1-8)' },
                 'TAG': { name: 'TAG', phase: 1, totalSessions: 12, focus: 'Etapa 1: Psicoeducação/Vigilância' },
@@ -398,16 +448,13 @@
                 'Nenhum': { name: 'Nenhum', phase: 0, totalSessions: 'N/A', focus: 'N/A' }
             };
             
-            // Se o protocolo for o mesmo, apenas atualiza o UI (evita resetar o contador)
             if (activePatient.protocol.name === protocolName && protocolName !== 'Nenhum') {
                 updateClinicalDashboard();
                 return;
             }
 
-            // Confirmação para resetar o protocolo
             if (activePatient.protocol.sessionCount > 0) {
                 if (!confirm(`Mudar o protocolo para ${protocolName}? Isso zerará o contador de sessões e o progresso do protocolo atual.`)) {
-                    // Se cancelar, retorna o dropdown para o valor anterior
                     document.getElementById('protocolSelect').value = activePatient.protocol.name; 
                     return;
                 }
@@ -424,7 +471,6 @@
             updateClinicalDashboard();
         }
 
-        // NOVA: Função para registrar a sessão e avançar o protocolo (B.5.1, B.6)
         function recordSession(event) {
             event.preventDefault();
             if (!activePatient || activePatient.protocol.name === 'Nenhum') {
@@ -451,31 +497,29 @@
                 notes: adaptationNotes,
             };
 
-            activePatient.protocol.sessionCount++; // Avança a contagem da sessão
-            activePatient.sessionHistory.unshift(sessionData); // Adiciona ao início da lista
+            activePatient.protocol.sessionCount++; 
+            activePatient.sessionHistory.unshift(sessionData); 
             savePatients();
 
             alert(`Sessão ${sessionData.sessionNumber} registrada com sucesso! Alívio de S.U.D.s: ${sudsStart} -> ${sudsEnd}.`);
 
-            // Limpa o formulário após o registro
             document.getElementById('recordSessionForm').reset();
+            // Após registrar, limpa o display do protocolo
+            document.getElementById('protocolGuideDisplay').style.display = 'none';
+            document.getElementById('protocolGuideDisplay').innerHTML = '';
             
-            // Atualiza o painel
             updateClinicalDashboard();
         }
 
-        // NOVA: Função para atualizar o painel clínico e histórico (Monitoramento Contínuo B.1.1)
         function updateClinicalDashboard() {
             if (!activePatient) return;
 
             const p = activePatient.protocol;
             
-            // 1. Atualizar o Protocolo
             document.getElementById('currentProtocolStatus').textContent = `${p.name} (Fase ${p.phase})`;
             document.getElementById('dashboardSessionCount').textContent = p.sessionCount;
             document.getElementById('dashboardTotalSessions').textContent = p.totalSessions;
 
-            // 2. Atualizar Fase/Foco (Lógica Simples de Exemplo)
             let currentPhase = `Fase ${p.phase}: Adaptação Manual`;
             let nextFocus = 'Revisar B.6 (Flexibilidade)';
 
@@ -503,7 +547,6 @@
             document.getElementById('dashboardPhase').textContent = currentPhase;
             document.getElementById('dashboardNextFocus').textContent = nextFocus;
 
-            // 3. Calcular Média de S.U.D.s (B.5.1)
             const history = activePatient.sessionHistory;
             const lastFive = history.slice(0, 5);
             
@@ -516,7 +559,6 @@
                 document.getElementById('dashboardSudsAverage').textContent = 'N/A';
             }
 
-            // 4. Renderizar Histórico (B.1.1)
             const historyList = document.getElementById('sessionHistoryList');
             historyList.innerHTML = '';
             
@@ -539,11 +581,6 @@
             }
         }
 
-        // =================================================================================
-        // LÓGICA DE INICIALIZAÇÃO E UI
-        // =================================================================================
-
-        // Função para alternar as abas
         function showContent(targetId) {
             document.querySelectorAll('.content-section').forEach(section => {
                 section.classList.remove('active');
@@ -557,12 +594,10 @@
         }
 
 
-        // Event Listeners (Conectando HTML ao JS)
         document.addEventListener('DOMContentLoaded', () => {
             loadPatients();
             renderPatientList();
             
-            // Tenta carregar o paciente ativo salvo
             const storedActivePatientId = localStorage.getItem('activePatientId');
             if (storedActivePatientId) {
                 const foundPatient = patients.find(p => p.id === storedActivePatientId);
@@ -577,7 +612,6 @@
                 });
             }
 
-            // Listener para adicionar novo paciente
             document.getElementById('addPatientForm').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const name = document.getElementById('patientNameInput').value.trim();
@@ -585,7 +619,6 @@
                     const newPatient = {
                         id: Date.now().toString(),
                         name: name,
-                        // NOVO: Inicializa com os campos de protocolo e histórico
                         protocol: { name: 'Nenhum', phase: 0, sessionCount: 0, totalSessions: 'N/A' }, 
                         sessionHistory: []
                     };
@@ -595,10 +628,8 @@
                 }
             });
 
-            // Listener para registrar sessão
             document.getElementById('recordSessionForm').addEventListener('submit', recordSession);
 
-            // Listener para navegação entre abas
             document.querySelectorAll('.nav-button').forEach(button => {
                 button.addEventListener('click', () => {
                     const target = button.getAttribute('data-target');
