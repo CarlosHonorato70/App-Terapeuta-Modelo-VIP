@@ -484,9 +484,10 @@
             }));
         }
 
+        // CORREÇÃO: Garante que a lista de pacientes seja renderizada APÓS salvar
         function savePatients() {
             localStorage.setItem('patients', JSON.stringify(patients));
-            renderPatientList();
+            renderPatientList(); // Renderização aqui
         }
 
         function setActivePatient(id) {
@@ -706,4 +707,106 @@
                 const avg = (sum / lastFive.length).toFixed(1);
                 document.getElementById('dashboardSudsAverage').textContent = avg;
             } else {
-                document.getElementById('dashboardSudsAverage').textContent = '
+                document.getElementById('dashboardSudsAverage').textContent = 'N/A';
+            }
+            
+            // CHAMADA DO NOVO GRÁFICO
+            renderSudsChart();
+
+            const historyList = document.getElementById('sessionHistoryList');
+            historyList.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p>Nenhuma sessão registrada para o paciente ativo.</p>';
+            } else {
+                history.forEach(s => {
+                    const diff = s.sudsStart - s.sudsEnd;
+                    // Formata a data para pt-BR
+                    const dateParts = s.date.split('-'); // Espera AAAA-MM-DD
+                    const formattedDate = dateParts.length === 3 ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : s.date;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'patient-item';
+                    item.style.flexDirection = 'column';
+                    item.style.alignItems = 'flex-start';
+                    // EXIBIÇÃO COM DATA E HORA
+                    item.innerHTML = `
+                        <strong>Sessão ${s.sessionNumber} (${formattedDate}) | ${s.startTime || 'N/A'} &rarr; ${s.endTime || 'N/A'}</strong><br>
+                        Técnica: ${s.intervention} | S.U.D.s: ${s.sudsStart} &rarr; ${s.sudsEnd} (Alívio: ${diff})<br>
+                        <span style="font-size: 0.9em; color: #666;">Notas (B.6): ${s.notes || 'Nenhuma adaptação registrada.'}</span>
+                    `;
+                    historyList.appendChild(item);
+                });
+            }
+        }
+
+        function showContent(targetId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(targetId).classList.add('active');
+            
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.querySelector(`.nav-button[data-target="${targetId}"]`).classList.add('active');
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPatients();
+            renderPatientList();
+            
+            const storedActivePatientId = localStorage.getItem('activePatientId');
+            if (storedActivePatientId) {
+                const foundPatient = patients.find(p => p.id === storedActivePatientId);
+                if (foundPatient) {
+                    setActivePatient(foundPatient.id);
+                    // Garante que o painel clínico seja visível se um paciente ativo for carregado
+                    document.querySelectorAll('.conditional-nav-button').forEach(button => {
+                        button.style.display = 'inline-block';
+                    });
+                } else {
+                    clearActivePatient();
+                }
+            } else {
+                document.querySelectorAll('.conditional-nav-button').forEach(button => {
+                    button.style.display = 'none';
+                });
+            }
+
+            document.getElementById('addPatientForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('patientNameInput').value.trim();
+                if (name) {
+                    const newPatient = {
+                        id: Date.now().toString(),
+                        name: name,
+                        protocol: { name: 'Nenhum', phase: 0, sessionCount: 0, totalSessions: 'N/A' }, 
+                        sessionHistory: []
+                    };
+                    patients.push(newPatient);
+                    savePatients(); // SALVA E CHAMA RENDER
+                    document.getElementById('patientNameInput').value = '';
+                }
+            });
+
+            document.getElementById('recordSessionForm').addEventListener('submit', recordSession);
+
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const target = button.getAttribute('data-target');
+                    showContent(target);
+                });
+            });
+
+            // Pré-preencher a data com a data de hoje, para conveniência
+            const dateInput = document.getElementById('sessionDateInput');
+            if (dateInput) {
+                dateInput.valueAsDate = new Date();
+            }
+
+        });
+    </script>
+</body>
+</html>
