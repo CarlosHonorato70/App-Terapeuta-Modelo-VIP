@@ -1,8 +1,561 @@
-// =================================================================================
-        // FUNÇÕES DE GERENCIAMENTO E LÓGICA EXISTENTES (ATUALIZADAS)
-        // =================================================================================
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplicativo VIP - Gerenciamento e Protocolos Clínicos</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+    <style>
+        /* Variáveis CSS e estilos existentes permanecem inalterados */
+        :root {
+            --primary-dark-blue: #1A4D7C; 
+            --secondary-dark-blue: #0F3D6B; 
+            --light-background-blue: #F0F8FF; 
+            --text-color: #333; 
+            --header-color: #2c3e50; 
+            --success-button: #28a745; 
+            --danger-button: #dc3545; 
+            --warning-color: #ffc107; 
+        }
 
-        // ... (funções loadPatients, savePatients, setActivePatient, clearActivePatient, renderPatientList, selectProtocol permanecem inalteradas) ...
+        body {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fff;
+            color: var(--text-color);
+        }
+
+        header {
+            background-color: var(--primary-dark-blue);
+            color: white;
+            padding: 15px 20px;
+            text-align: center;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--light-background-blue);
+        }
+
+        .nav-button {
+            padding: 10px 20px;
+            border: none;
+            background-color: transparent;
+            color: var(--header-color);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-button:hover, .nav-button.active {
+            color: var(--primary-dark-blue);
+            border-bottom: 3px solid var(--primary-dark-blue);
+        }
+
+        #currentPatientInfo {
+            display: none;
+            background-color: var(--light-background-blue);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        #currentPatientInfo p {
+            margin: 5px 0;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .clear-button {
+            background-color: var(--danger-button);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-left: 15px;
+            font-size: 14px;
+        }
+        
+        input[type="text"], input[type="number"], select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box; 
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        button {
+            background-color: var(--primary-dark-blue);
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: var(--secondary-dark-blue);
+        }
+
+        .patient-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .patient-item:hover {
+            background-color: var(--light-background-blue);
+        }
+
+        .clinical-dashboard {
+            background-color: #fff;
+            padding: 20px;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            margin-top: 15px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .dashboard-item {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-left: 4px solid var(--warning-color);
+            background-color: #fff8e1;
+            border-radius: 4px;
+        }
+
+        .suds-indicator {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--danger-button);
+        }
+
+        .suds-form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .suds-form-group > div {
+            flex: 1;
+        }
+
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        
+        .protocol-selector {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            border: 1px dashed #ccc;
+        }
+
+        #protocolGuideDisplay {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #e6f7ff; 
+            border: 1px solid #91d5ff;
+            border-radius: 6px;
+            white-space: pre-wrap; 
+            font-size: 0.95em;
+        }
+        #protocolGuideDisplay h4 {
+            color: var(--primary-dark-blue);
+            margin-top: 0;
+        }
+        
+        /* NOVO ESTILO PARA O GRÁFICO */
+        .chart-container {
+            position: relative; 
+            height: 300px; /* Altura fixa para o gráfico */
+            width: 100%;
+            margin-top: 20px;
+            padding-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>App-Terapeuta-Modelo-VIP</h1>
+    </header>
+
+    <div class="container">
+        <div id="currentPatientInfo">
+            <p>Paciente Ativo: <span id="activePatientName"></span></p>
+            <p>ID: <span id="activePatientId"></span></p>
+            <button class="clear-button" onclick="clearActivePatient()">Limpar Paciente</button>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="nav-button active" data-target="patientsSection">Pacientes</button>
+            <button class="nav-button conditional-nav-button" data-target="clinicalRecordSection" style="display: none;">Registro Clínico VIP</button>
+        </div>
+
+        <section id="patientsSection" class="content-section active">
+            <h2>Gerenciar Pacientes</h2>
+            <form id="addPatientForm">
+                <input type="text" id="patientNameInput" placeholder="Nome do Novo Paciente" required>
+                <button type="submit">Adicionar Paciente</button>
+            </form>
+
+            <h3>Lista de Pacientes</h3>
+            <div id="patientList">
+                </div>
+        </section>
+
+        <section id="clinicalRecordSection" class="content-section">
+            <h2>Registro Clínico e Protocolo</h2>
+            
+            <div class="protocol-selector">
+                <h3>1. Definir Protocolo Ativo</h3>
+                <label for="protocolSelect">Selecione o Protocolo:</label>
+                <select id="protocolSelect" onchange="selectProtocol(this.value)">
+                    <option value="Nenhum">Nenhum Selecionado</option>
+                    <option value="TEPT">TEPT (20-24 Sessões)</option>
+                    <option value="TAG">Ansiedade Generalizada (TAG)</option>
+                    <option value="DEPRESSAO">Depressão</option>
+                    <option value="CUSTOM">Protocolo Personalizado</option>
+                </select>
+                <p>Status Atual: <strong id="currentProtocolStatus">Nenhum Protocolo Definido</strong></p>
+            </div>
+
+            <div class="clinical-dashboard">
+                <h3>2. Painel de Bordo do Protocolo</h3>
+                <div class="dashboard-item">
+                    <p>Fase Atual: <strong id="dashboardPhase">N/A</strong></p>
+                    <p>Sessões Completas: <strong id="dashboardSessionCount">0</strong> / <span id="dashboardTotalSessions">N/A</span></p>
+                </div>
+                <div class="dashboard-item">
+                    <p>Média de S.U.D.s (Últimas 5 Sessões): <span class="suds-indicator" id="dashboardSudsAverage">N/A</span></p>
+                    <p>Próximo Foco (Guia VIP): <strong id="dashboardNextFocus">Estabilização/Vigilância</strong></p>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="sudsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="clinical-dashboard">
+                <h3>3. Registro Rápido da Sessão (B.5.1)</h3>
+                <form id="recordSessionForm">
+                    <label for="interventionSelect">Intervenção Aplicada (B.3):</label>
+                    <select id="interventionSelect" onchange="displaySelectedProtocol(this.value)" required>
+                        <option value="">Selecione a Técnica...</option>
+                        <option value="Psicoeducacao">Psicoeducação: Modelo VIP (B.4)</option>
+                        <option value="Mindfulness">Mindfulness/Regulação (B.3.2)</option>
+                        <option value="RC">Reestruturação Cognitiva (RC, B.3.3)</option>
+                        <option value="Exposicao">Exposição/Processamento (B.2.1.3)</option>
+                        <option value="Adiamento">Técnica de Adiamento (B.5.2)</option>
+                        <option value="Outra">Outra / Sessão Padrão</option>
+                    </select>
+                    
+                    <div id="protocolGuideDisplay" style="display: none;">
+                    </div>
+
+                    <div class="suds-form-group">
+                        <div>
+                            <label for="sudsStart">S.U.D.s (Início da Intervenção):</label>
+                            <input type="number" id="sudsStart" min="0" max="10" required>
+                        </div>
+                        <div>
+                            <label for="sudsEnd">S.U.D.s (Fim da Intervenção):</label>
+                            <input type="number" id="sudsEnd" min="0" max="10" required>
+                        </div>
+                    </div>
+
+                    <label for="adaptationNotes">Notas da Sessão e Adaptação (B.6):</label>
+                    <textarea id="adaptationNotes" placeholder="Registre observações importantes, adaptações no sequenciamento (B.6) e tarefas de casa." rows="4"></textarea>
+
+                    <button type="submit">Registrar Sessão e Avançar Protocolo</button>
+                </form>
+            </div>
+
+            <div class="clinical-dashboard" style="margin-top: 20px;">
+                <h3>4. Histórico de Sessões Registradas</h3>
+                <div id="sessionHistoryList">
+                    <p>Nenhuma sessão registrada para o paciente ativo.</p>
+                </div>
+            </div>
+
+        </section>
+
+    </div> <script>
+        // Variável global para armazenar a instância do gráfico
+        let sudsChartInstance = null;
+        
+        // =================================================================================
+        // DEFINIÇÃO DOS SCRIPTS DE PROTOCOLO (APÊNDICE B)
+        // =================================================================================
+        const protocolScripts = {
+            Psicoeducacao: `
+                <h4>Psicoeducação: Introdução ao Modelo VIP (B.4.1)</h4>
+                1. Introdução: Apresente o trabalho como uma parceria.
+                2. Conceito VIP: Explique Vigilância (notar padrões), Integração (dar sentido) e Processamento (mudar a reação).
+                3. Colaboração: Enfatize que o paciente é o especialista em sua vida e a adesão é chave (B.1.1).
+                4. Pergunta de Fechamento: "Como você se sente sobre começarmos a usar este mapa?"
+            `,
+            Mindfulness: `
+                <h4>Guia Rápido: Mindfulness/Regulação (B.3.2)</h4>
+                1. Foco na Respiração: Peça ao paciente para focar na sensação da respiração (âncora).
+                2. Aterramento (Opcional): Use a técnica 5-4-3-2-1 para estabilização, se a S.U.D.s estiver alta (B.5.1 > 7).
+                3. Conscientização Sem Julgamento: Lembre o paciente de apenas *observar* pensamentos/sensações, sem se apegar ou lutar contra eles.
+                4. Tarefa de Casa: Prática curta de 3 a 5 minutos por dia.
+            `,
+            RC: `
+                <h4>Reestruturação Cognitiva (RC) - B.3.3</h4>
+                1. Identificação: Identifique o **Pensamento Automático Negativo (PAN)** e meça o S.U.D.s.
+                2. Evidências: Pergunte: "Quais são as **evidências a favor** e **contra** este pensamento ser 100% verdadeiro?"
+                3. Alternativas: Pergunte: "Qual é um **pensamento mais equilibrado**? O que você diria a um amigo?"
+                4. Reavaliação: Meça o S.U.D.s novamente para o PAN e o novo nível de crença no pensamento alternativo.
+            `,
+            Exposicao: `
+                <h4>Preparação para Exposição/Processamento (B.2.1.3)</h4>
+                1. Avaliação de S.U.D.s: Confirme que o paciente está **abaixo de S.U.D.s 5** para iniciar o processamento.
+                2. Preparação da Imagem/Cena: Peça para o paciente evocar a memória ou cenário de exposição.
+                3. Manutenção: Mantenha o paciente engajado na imagem/cena, monitorando o S.U.D.s continuamente. Interrompa se houver dissociação (B.6).
+                4. Fechamento: Não termine a sessão até que a S.U.D.s caia pelo menos 3 pontos em relação ao pico.
+            `,
+            Adiamento: `
+                <h4>Técnica de Adiamento da Preocupação (B.5.2)</h4>
+                1. Psicoeducação: Explique que a técnica visa **controlar o *tempo* da preocupação**, não o conteúdo.
+                2. Agendamento: Defina um **Horário Fixo da Preocupação** (ex: 18h00 - 18h20).
+                3. Durante o dia: Quando a preocupação surgir, registre-a (ou use uma "ficha de preocupação") e adie, dizendo: "Eu vou pensar nisso no meu horário agendado."
+                4. No Horário Fixo: Revise as preocupações registradas e decida: é **produtiva** (exige ação) ou **improdutiva** (não controlável)?
+            `,
+            Outra: `
+                <h4>Intervenção Padrão / Outra</h4>
+                Lembre-se do princípio B.6: Adaptação Individual e Sequenciamento Flexível. Use este espaço para anotações detalhadas sobre a técnica não listada.
+            `
+        };
+
+        // =================================================================================
+        // FUNÇÃO DE EXIBIÇÃO DE PROTOCOLO
+        // =================================================================================
+        function displaySelectedProtocol(techniqueKey) {
+            const displayBox = document.getElementById('protocolGuideDisplay');
+            
+            if (techniqueKey && protocolScripts[techniqueKey]) {
+                displayBox.innerHTML = protocolScripts[techniqueKey];
+                displayBox.style.display = 'block';
+            } else {
+                displayBox.style.display = 'none';
+                displayBox.innerHTML = '';
+            }
+        }
+        
+        // =================================================================================
+        // FUNÇÃO PARA RENDERIZAR O GRÁFICO DE S.U.D.s
+        // =================================================================================
+        function renderSudsChart() {
+            if (!activePatient || activePatient.sessionHistory.length === 0) {
+                // Destrói o gráfico se existir e não houver dados
+                if (sudsChartInstance) {
+                    sudsChartInstance.destroy();
+                    sudsChartInstance = null;
+                }
+                return;
+            }
+
+            // Inverte o histórico para que o gráfico mostre a ordem correta das sessões
+            const sortedHistory = [...activePatient.sessionHistory].reverse();
+
+            const sessionLabels = sortedHistory.map(s => `Sessão ${s.sessionNumber}`);
+            const sudsStartData = sortedHistory.map(s => s.sudsStart);
+            const sudsEndData = sortedHistory.map(s => s.sudsEnd);
+            
+            const ctx = document.getElementById('sudsChart').getContext('2d');
+
+            // Destrói a instância anterior do gráfico antes de criar uma nova
+            if (sudsChartInstance) {
+                sudsChartInstance.destroy();
+            }
+
+            sudsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sessionLabels,
+                    datasets: [{
+                        label: 'S.U.D.s Início da Intervenção',
+                        data: sudsStartData,
+                        borderColor: 'rgb(255, 99, 132)', // Vermelho
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }, {
+                        label: 'S.U.D.s Fim da Intervenção',
+                        data: sudsEndData,
+                        borderColor: 'rgb(54, 162, 235)', // Azul
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            title: {
+                                display: true,
+                                text: 'Nível de Perturbação (0-10)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Evolução dos S.U.D.s por Sessão (B.1.1)'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // =================================================================================
+        // FUNÇÕES DE GERENCIAMENTO E LÓGICA EXISTENTES
+        // =================================================================================
+        
+        let patients = [];
+        let activePatient = null;
+        
+        function loadPatients() {
+            const storedPatients = JSON.parse(localStorage.getItem('patients') || '[]');
+            patients = storedPatients.map(p => ({
+                id: p.id,
+                name: p.name,
+                protocol: p.protocol || {
+                    name: 'Nenhum',
+                    phase: 0, 
+                    sessionCount: 0,
+                    totalSessions: 'N/A'
+                },
+                sessionHistory: p.sessionHistory || []
+            }));
+        }
+
+        function savePatients() {
+            localStorage.setItem('patients', JSON.stringify(patients));
+            renderPatientList();
+        }
+
+        function setActivePatient(id) {
+            activePatient = patients.find(p => p.id === id);
+            localStorage.setItem('activePatientId', id);
+
+            if (activePatient) {
+                document.getElementById('activePatientName').textContent = activePatient.name;
+                document.getElementById('activePatientId').textContent = activePatient.id;
+                document.getElementById('currentPatientInfo').style.display = 'flex';
+                
+                document.querySelectorAll('.conditional-nav-button').forEach(button => {
+                    button.style.display = 'inline-block';
+                });
+                
+                updateClinicalDashboard();
+                document.getElementById('protocolSelect').value = activePatient.protocol.name;
+
+            }
+        }
+
+        function clearActivePatient() {
+            activePatient = null;
+            localStorage.removeItem('activePatientId');
+            document.getElementById('currentPatientInfo').style.display = 'none';
+
+            document.querySelectorAll('.conditional-nav-button').forEach(button => {
+                button.style.display = 'none';
+            });
+            showContent('patientsSection');
+            document.querySelector('.nav-button[data-target="patientsSection"]').classList.add('active');
+        }
+
+        function renderPatientList() {
+            const list = document.getElementById('patientList');
+            list.innerHTML = '';
+
+            patients.forEach(patient => {
+                const item = document.createElement('div');
+                item.className = 'patient-item';
+                item.innerHTML = `
+                    <span>${patient.name}</span>
+                    <button onclick="setActivePatient('${patient.id}')">Selecionar</button>
+                `;
+                list.appendChild(item);
+            });
+        }
+        
+        function selectProtocol(protocolName) {
+            if (!activePatient) {
+                alert('Por favor, selecione um paciente ativo primeiro.');
+                return;
+            }
+
+            const protocolConfig = {
+                'TEPT': { name: 'TEPT', phase: 1, totalSessions: 24, focus: 'Fase 1: Estabilização (S. 1-8)' },
+                'TAG': { name: 'TAG', phase: 1, totalSessions: 12, focus: 'Etapa 1: Psicoeducação/Vigilância' },
+                'DEPRESSAO': { name: 'DEPRESSAO', phase: 1, totalSessions: 16, focus: 'Fase 1: Ativação Comportamental' },
+                'CUSTOM': { name: 'Personalizado', phase: 1, totalSessions: 'CUSTOM', focus: 'Definir Foco Manualmente' },
+                'Nenhum': { name: 'Nenhum', phase: 0, totalSessions: 'N/A', focus: 'N/A' }
+            };
+            
+            if (activePatient.protocol.name === protocolName && protocolName !== 'Nenhum') {
+                updateClinicalDashboard();
+                return;
+            }
+
+            if (activePatient.protocol.sessionCount > 0) {
+                if (!confirm(`Mudar o protocolo para ${protocolName}? Isso zerará o contador de sessões e o progresso do protocolo atual.`)) {
+                    document.getElementById('protocolSelect').value = activePatient.protocol.name; 
+                    return;
+                }
+            }
+
+            activePatient.protocol = {
+                name: protocolConfig[protocolName].name,
+                phase: protocolConfig[protocolName].phase,
+                sessionCount: 0,
+                totalSessions: protocolConfig[protocolName].totalSessions
+            };
+            
+            savePatients();
+            updateClinicalDashboard();
+        }
 
         function recordSession(event) {
             event.preventDefault();
@@ -22,7 +575,7 @@
             }
 
             // ===================================================
-            // NOVO: IMPLEMENTAÇÃO DO SAFETY GATE (TEPT)
+            // IMPLEMENTAÇÃO DO SAFETY GATE (TEPT)
             // ===================================================
             if (activePatient.protocol.name === 'TEPT') {
                 const nextSessionNumber = activePatient.protocol.sessionCount + 1;
@@ -34,7 +587,7 @@
                         
                         Iniciar a EXPOSIÇÃO/PROCESSAMENTO (Fase 2) na Sessão ${nextSessionNumber} pode ser prematuro. 
                         
-                        Você confirma que o paciente está estabilizado (ex: consegue usar o Lugar Seguro [cite: 46]) e deseja prosseguir com o Processamento (B.2.1.3)?`
+                        Você confirma que o paciente está estabilizado (ex: consegue usar o Lugar Seguro) e deseja prosseguir com o Processamento (B.2.1.3)?`
                     );
                     if (!confirmProcessamento) {
                         return; // Cancela o registro se o terapeuta não confirmar
@@ -46,7 +599,7 @@
                     alert(
                         `[ALERTA CLÍNICO] O Processamento do trauma (Exposição) deve preferencialmente ser realizado com S.U.D.s inicial abaixo de 5. 
                         
-                        S.U.D.s de ${sudsStart} indica alta ativação. Lembre-se de verificar o acesso aos recursos de estabilização (Lugar Seguro) e garantir o Protocolo de Segurança (B.2.1.3)[cite: 46, 48].`
+                        S.U.D.s de ${sudsStart} indica alta ativação. Lembre-se de verificar o acesso aos recursos de estabilização (Lugar Seguro) e garantir o Protocolo de Segurança (B.2.1.3).`
                     );
                     // Continua, mas com alerta explícito
                 }
@@ -54,7 +607,7 @@
             // ===================================================
 
             const sessionData = {
-                date: new Date().toISOString().slice(0, 10),
+                date: new Date().toISOString().slice(0, 1, 10),
                 sessionNumber: activePatient.protocol.sessionCount + 1,
                 intervention: intervention,
                 sudsStart: sudsStart,
@@ -101,6 +654,14 @@
                     currentPhase = 'Fase 3: Consolidação e Recaída';
                     nextFocus = 'Integração de Ganhos / Plano de Crise (B.6)';
                 }
+            } else if (p.name === 'TAG') {
+                 if (p.sessionCount <= 4) {
+                    currentPhase = 'Etapa I: Psicoeducação e Vigilância';
+                    nextFocus = 'Registro de Preocupação / Adiamento (B.5.2)';
+                } else {
+                    currentPhase = 'Etapa II: Processamento e Flexibilidade';
+                    nextFocus = 'Reestruturação Cognitiva (B.3.3) / Exposição Interna';
+                }
             } else if (p.name === 'DEPRESSAO') {
                  if (p.sessionCount <= 6) {
                     currentPhase = `Fase 1: Ativação e Engajamento (${p.sessionCount}/6)`;
@@ -110,8 +671,108 @@
                     nextFocus = 'Imagery Rescripting (Memórias Depressogênicas)';
                 }
             }
+
+            document.getElementById('dashboardPhase').textContent = currentPhase;
+            document.getElementById('dashboardNextFocus').textContent = nextFocus;
+
+            const history = activePatient.sessionHistory;
+            const lastFive = history.slice(0, 5);
             
-            // ... (restante da função updateClinicalDashboard e renderSudsChart) ...
+            if (lastFive.length > 0) {
+                const sudsEnds = lastFive.map(s => s.sudsEnd);
+                const sum = sudsEnds.reduce((a, b) => a + b, 0);
+                const avg = (sum / lastFive.length).toFixed(1);
+                document.getElementById('dashboardSudsAverage').textContent = avg;
+            } else {
+                document.getElementById('dashboardSudsAverage').textContent = 'N/A';
+            }
             
-            // O restante das funções da sua aplicação deve ser mantido
+            // CHAMADA DO NOVO GRÁFICO
+            renderSudsChart();
+
+            const historyList = document.getElementById('sessionHistoryList');
+            historyList.innerHTML = '';
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<p>Nenhuma sessão registrada para o paciente ativo.</p>';
+            } else {
+                history.forEach(s => {
+                    const diff = s.sudsStart - s.sudsEnd;
+                    const item = document.createElement('div');
+                    item.className = 'patient-item';
+                    item.style.flexDirection = 'column';
+                    item.style.alignItems = 'flex-start';
+                    item.innerHTML = `
+                        <strong>Sessão ${s.sessionNumber} (${s.date})</strong><br>
+                        Técnica: ${s.intervention} | S.U.D.s: ${s.sudsStart} &rarr; ${s.sudsEnd} (Alívio: ${diff})<br>
+                        <span style="font-size: 0.9em; color: #666;">Notas (B.6): ${s.notes || 'Nenhuma adaptação registrada.'}</span>
+                    `;
+                    historyList.appendChild(item);
+                });
+            }
         }
+
+        function showContent(targetId) {
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(targetId).classList.add('active');
+            
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            document.querySelector(`.nav-button[data-target="${targetId}"]`).classList.add('active');
+        }
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadPatients();
+            renderPatientList();
+            
+            const storedActivePatientId = localStorage.getItem('activePatientId');
+            if (storedActivePatientId) {
+                const foundPatient = patients.find(p => p.id === storedActivePatientId);
+                if (foundPatient) {
+                    setActivePatient(foundPatient.id);
+                    // Garante que o painel clínico seja visível se um paciente ativo for carregado
+                    document.querySelectorAll('.conditional-nav-button').forEach(button => {
+                        button.style.display = 'inline-block';
+                    });
+                } else {
+                    clearActivePatient();
+                }
+            } else {
+                document.querySelectorAll('.conditional-nav-button').forEach(button => {
+                    button.style.display = 'none';
+                });
+            }
+
+            document.getElementById('addPatientForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = document.getElementById('patientNameInput').value.trim();
+                if (name) {
+                    const newPatient = {
+                        id: Date.now().toString(),
+                        name: name,
+                        protocol: { name: 'Nenhum', phase: 0, sessionCount: 0, totalSessions: 'N/A' }, 
+                        sessionHistory: []
+                    };
+                    patients.push(newPatient);
+                    savePatients();
+                    document.getElementById('patientNameInput').value = '';
+                }
+            });
+
+            document.getElementById('recordSessionForm').addEventListener('submit', recordSession);
+
+            document.querySelectorAll('.nav-button').forEach(button => {
+                button.addEventListener('click', () => {
+                    const target = button.getAttribute('data-target');
+                    showContent(target);
+                });
+            });
+
+        });
+    </script>
+</body>
+</html>
