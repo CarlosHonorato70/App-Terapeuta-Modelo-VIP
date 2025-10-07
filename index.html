@@ -239,7 +239,7 @@
                 <label for="protocolSelect">Selecione o Protocolo:</label>
                 <select id="protocolSelect" onchange="selectProtocol(this.value)">
                     <option value="Nenhum">Nenhum Selecionado</option>
-                    <option value="TEPT">TEPT (20-24 Sessões)</option>
+                    <option value="Anamnese">Anamnese / Fase de Avaliação</option> <option value="TEPT">TEPT (20-24 Sessões)</option>
                     <option value="TAG">Ansiedade Generalizada (TAG)</option>
                     <option value="DEPRESSAO">Depressão</option>
                     <option value="CUSTOM">Protocolo Personalizado</option>
@@ -273,7 +273,7 @@
                     <label for="interventionSelect">Intervenção Aplicada (B.3):</label>
                     <select id="interventionSelect" onchange="displaySelectedProtocol(this.value)" required>
                         <option value="">Selecione a Técnica...</option>
-                        <option value="Psicoeducacao">Psicoeducação: Modelo VIP (B.4)</option>
+                        <option value="EntrevistaInicial">Entrevista Inicial / Coleta de Dados</option> <option value="Psicoeducacao">Psicoeducação: Modelo VIP (B.4)</option>
                         <option value="Mindfulness">Mindfulness/Regulação (B.3.2)</option>
                         <option value="RC">Reestruturação Cognitiva (RC, B.3.3)</option>
                         <option value="Exposicao">Exposição/Processamento (B.2.1.3)</option>
@@ -330,6 +330,14 @@
         // DEFINIÇÃO DOS SCRIPTS DE PROTOCOLO (APÊNDICE B)
         // =================================================================================
         const protocolScripts = {
+            EntrevistaInicial: `
+                <h4>Guia: Entrevista Inicial / Anamnese</h4>
+                1. **Vínculo (Rapport):** Priorize a escuta ativa e a validação.
+                2. **Queixa Principal:** Deixe o paciente descrever o problema com suas próprias palavras.
+                3. **História do Problema:** Quando começou? O que já foi tentado?
+                4. **Objetivos:** O que ele espera da terapia? (Definição de metas SMART/VIP).
+                5. **Avaliação de Risco:** Rastreamento de ideação suicida/homicida e rede de apoio.
+            `, // NOVO SCRIPT
             Psicoeducacao: `
                 <h4>Psicoeducação: Introdução ao Modelo VIP (B.4.1)</h4>
                 1. Introdução: Apresente o trabalho como uma parceria.
@@ -487,7 +495,7 @@
         // CORREÇÃO: Garante que a lista de pacientes seja renderizada APÓS salvar
         function savePatients() {
             localStorage.setItem('patients', JSON.stringify(patients));
-            renderPatientList(); // Renderização aqui
+            renderPatientList(); 
         }
 
         function setActivePatient(id) {
@@ -543,11 +551,12 @@
             }
 
             const protocolConfig = {
+                'Nenhum': { name: 'Nenhum', phase: 0, totalSessions: 'N/A', focus: 'N/A' },
+                'Anamnese': { name: 'Anamnese', phase: 1, totalSessions: 3, focus: 'Fase 1: Coleta de História e Aliança' }, // NOVO PROTOCOLO
                 'TEPT': { name: 'TEPT', phase: 1, totalSessions: 24, focus: 'Fase 1: Estabilização (S. 1-8)' },
                 'TAG': { name: 'TAG', phase: 1, totalSessions: 12, focus: 'Etapa 1: Psicoeducação/Vigilância' },
                 'DEPRESSAO': { name: 'DEPRESSAO', phase: 1, totalSessions: 16, focus: 'Fase 1: Ativação Comportamental' },
-                'CUSTOM': { name: 'Personalizado', phase: 1, totalSessions: 'CUSTOM', focus: 'Definir Foco Manualmente' },
-                'Nenhum': { name: 'Nenhum', phase: 0, totalSessions: 'N/A', focus: 'N/A' }
+                'CUSTOM': { name: 'Personalizado', phase: 1, totalSessions: 'CUSTOM', focus: 'Definir Foco Manualmente' }
             };
             
             if (activePatient.protocol.name === protocolName && protocolName !== 'Nenhum') {
@@ -645,6 +654,9 @@
             alert(`Sessão ${sessionData.sessionNumber} registrada com sucesso! Alívio de S.U.D.s: ${sudsStart} -> ${sudsEnd}.`);
 
             document.getElementById('recordSessionForm').reset();
+            // Pré-preenche a data de hoje novamente após o reset
+            document.getElementById('sessionDateInput').valueAsDate = new Date();
+            
             document.getElementById('protocolGuideDisplay').style.display = 'none';
             document.getElementById('protocolGuideDisplay').innerHTML = '';
             
@@ -692,6 +704,13 @@
                 } else {
                     currentPhase = `Fase 2: Modificação de Padrões (${p.sessionCount}/14)`;
                     nextFocus = 'Imagery Rescripting (Memórias Depressogênicas)';
+                }
+            } else if (p.name === 'Anamnese') { // NOVO DASHBOARD
+                currentPhase = `Fase de Avaliação (${p.sessionCount}/${p.totalSessions})`;
+                if (p.sessionCount < p.totalSessions) {
+                    nextFocus = 'Continuar Coleta: História de Vida e Recursos';
+                } else {
+                    nextFocus = 'Preparar Conceitualização de Caso e Protocolo';
                 }
             }
 
@@ -786,7 +805,7 @@
                         sessionHistory: []
                     };
                     patients.push(newPatient);
-                    savePatients(); // SALVA E CHAMA RENDER
+                    savePatients(); 
                     document.getElementById('patientNameInput').value = '';
                 }
             });
