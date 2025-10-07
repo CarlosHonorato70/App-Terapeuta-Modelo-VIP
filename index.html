@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aplicativo VIP - Gerenciamento e Protocolos Clínicos</title>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
     <style>
         /* Variáveis CSS e estilos existentes permanecem inalterados */
         :root {
@@ -176,19 +177,27 @@
             border: 1px dashed #ccc;
         }
 
-        /* NOVO ESTILO: Caixa de Protocolo */
         #protocolGuideDisplay {
             margin-top: 15px;
             padding: 15px;
-            background-color: #e6f7ff; /* Azul claro para destaque */
+            background-color: #e6f7ff; 
             border: 1px solid #91d5ff;
             border-radius: 6px;
-            white-space: pre-wrap; /* Preserva quebras de linha e espaços do script */
+            white-space: pre-wrap; 
             font-size: 0.95em;
         }
         #protocolGuideDisplay h4 {
             color: var(--primary-dark-blue);
             margin-top: 0;
+        }
+        
+        /* NOVO ESTILO PARA O GRÁFICO */
+        .chart-container {
+            position: relative; 
+            height: 300px; /* Altura fixa para o gráfico */
+            width: 100%;
+            margin-top: 20px;
+            padding-top: 10px;
         }
     </style>
 </head>
@@ -248,6 +257,10 @@
                     <p>Média de S.U.D.s (Últimas 5 Sessões): <span class="suds-indicator" id="dashboardSudsAverage">N/A</span></p>
                     <p>Próximo Foco (Manual): <strong id="dashboardNextFocus">Estabilização/Vigilância</strong></p>
                 </div>
+
+                <div class="chart-container">
+                    <canvas id="sudsChart"></canvas>
+                </div>
             </div>
 
             <div class="clinical-dashboard">
@@ -265,7 +278,7 @@
                     </select>
                     
                     <div id="protocolGuideDisplay" style="display: none;">
-                        </div>
+                    </div>
 
                     <div class="suds-form-group">
                         <div>
@@ -295,6 +308,9 @@
         </section>
 
     </div> <script>
+        // Variável global para armazenar a instância do gráfico
+        let sudsChartInstance = null;
+        
         // =================================================================================
         // DEFINIÇÃO DOS SCRIPTS DE PROTOCOLO (APÊNDICE B)
         // =================================================================================
@@ -341,7 +357,7 @@
         };
 
         // =================================================================================
-        // FUNÇÃO DE EXIBIÇÃO DE PROTOCOLO (NOVA)
+        // FUNÇÃO DE EXIBIÇÃO DE PROTOCOLO
         // =================================================================================
         function displaySelectedProtocol(techniqueKey) {
             const displayBox = document.getElementById('protocolGuideDisplay');
@@ -355,19 +371,90 @@
             }
         }
         
-        // ... (O restante do seu código JavaScript, incluindo loadPatients, savePatients, setActivePatient, etc., continua aqui)
-        // Por ser repetitivo, o restante do código JS da resposta anterior foi omitido, mas DEVE ser mantido no seu arquivo.
+        // =================================================================================
+        // FUNÇÃO PARA RENDERIZAR O GRÁFICO DE S.U.D.s (NOVA)
+        // =================================================================================
+        function renderSudsChart() {
+            if (!activePatient || activePatient.sessionHistory.length === 0) {
+                // Destrói o gráfico se existir e não houver dados
+                if (sudsChartInstance) {
+                    sudsChartInstance.destroy();
+                    sudsChartInstance = null;
+                }
+                return;
+            }
+
+            // Os dados do histórico são armazenados do mais recente ao mais antigo.
+            // Para o gráfico, precisamos reverter para ter o tempo (sessões) no eixo X.
+            const sortedHistory = [...activePatient.sessionHistory].reverse();
+
+            const sessionLabels = sortedHistory.map(s => `Sessão ${s.sessionNumber}`);
+            const sudsStartData = sortedHistory.map(s => s.sudsStart);
+            const sudsEndData = sortedHistory.map(s => s.sudsEnd);
+            
+            const ctx = document.getElementById('sudsChart').getContext('2d');
+
+            // Destrói a instância anterior do gráfico antes de criar uma nova
+            if (sudsChartInstance) {
+                sudsChartInstance.destroy();
+            }
+
+            sudsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sessionLabels,
+                    datasets: [{
+                        label: 'S.U.D.s Início da Intervenção',
+                        data: sudsStartData,
+                        borderColor: 'rgb(255, 99, 132)', // Vermelho
+                        backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }, {
+                        label: 'S.U.D.s Fim da Intervenção',
+                        data: sudsEndData,
+                        borderColor: 'rgb(54, 162, 235)', // Azul
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderWidth: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 1
+                            },
+                            title: {
+                                display: true,
+                                text: 'Nível de Perturbação (0-10)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Evolução dos S.U.D.s por Sessão (B.1.1)'
+                        }
+                    }
+                }
+            });
+        }
         
         // =================================================================================
-        // VARIÁVEIS GLOBAIS
+        // FUNÇÕES DE GERENCIAMENTO E LÓGICA EXISTENTES
         // =================================================================================
+        
         let patients = [];
         let activePatient = null;
         
-        // Funções loadPatients, savePatients, setActivePatient, clearActivePatient, renderPatientList, 
-        // selectProtocol, recordSession, updateClinicalDashboard, showContent, e o DOMContentLoaded listener 
-        // DEVEM SER MANTIDOS COMPLETOS aqui. Use a versão final da resposta anterior.
-
         function loadPatients() {
             const storedPatients = JSON.parse(localStorage.getItem('patients') || '[]');
             patients = storedPatients.map(p => ({
@@ -504,7 +591,6 @@
             alert(`Sessão ${sessionData.sessionNumber} registrada com sucesso! Alívio de S.U.D.s: ${sudsStart} -> ${sudsEnd}.`);
 
             document.getElementById('recordSessionForm').reset();
-            // Após registrar, limpa o display do protocolo
             document.getElementById('protocolGuideDisplay').style.display = 'none';
             document.getElementById('protocolGuideDisplay').innerHTML = '';
             
@@ -558,6 +644,9 @@
             } else {
                 document.getElementById('dashboardSudsAverage').textContent = 'N/A';
             }
+            
+            // CHAMADA DO NOVO GRÁFICO
+            renderSudsChart();
 
             const historyList = document.getElementById('sessionHistoryList');
             historyList.innerHTML = '';
