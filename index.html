@@ -89,7 +89,7 @@
             font-size: 14px;
         }
         
-        input[type="text"], input[type="number"], select, textarea {
+        input[type="text"], input[type="number"], input[type="date"], input[type="time"], select, textarea {
             width: 100%;
             padding: 10px;
             margin-bottom: 10px;
@@ -266,6 +266,10 @@
             <div class="clinical-dashboard">
                 <h3>3. Registro Rápido da Sessão (B.5.1)</h3>
                 <form id="recordSessionForm">
+                    
+                    <label for="sessionDateInput">Data da Sessão:</label>
+                    <input type="date" id="sessionDateInput" required>
+
                     <label for="interventionSelect">Intervenção Aplicada (B.3):</label>
                     <select id="interventionSelect" onchange="displaySelectedProtocol(this.value)" required>
                         <option value="">Selecione a Técnica...</option>
@@ -278,6 +282,17 @@
                     </select>
                     
                     <div id="protocolGuideDisplay" style="display: none;">
+                    </div>
+
+                    <div class="suds-form-group">
+                        <div>
+                            <label for="startTimeInput">Hora de Início:</label>
+                            <input type="time" id="startTimeInput" required>
+                        </div>
+                        <div>
+                            <label for="endTimeInput">Hora de Fim:</label>
+                            <input type="time" id="endTimeInput" required>
+                        </div>
                     </div>
 
                     <div class="suds-form-group">
@@ -564,13 +579,18 @@
                 return;
             }
 
+            // NOVOS CAMPOS DE DATA E HORA
+            const sessionDate = document.getElementById('sessionDateInput').value;
+            const startTime = document.getElementById('startTimeInput').value;
+            const endTime = document.getElementById('endTimeInput').value;
+
             const sudsStart = parseInt(document.getElementById('sudsStart').value);
             const sudsEnd = parseInt(document.getElementById('sudsEnd').value);
             const intervention = document.getElementById('interventionSelect').value;
             const adaptationNotes = document.getElementById('adaptationNotes').value;
 
-            if (isNaN(sudsStart) || isNaN(sudsEnd) || !intervention) {
-                alert('Preencha S.U.D.s inicial, final e a intervenção.');
+            if (!sessionDate || !startTime || !endTime || isNaN(sudsStart) || isNaN(sudsEnd) || !intervention) {
+                alert('Por favor, preencha todos os campos obrigatórios (Data, Horários, S.U.D.s e Intervenção).');
                 return;
             }
 
@@ -607,7 +627,9 @@
             // ===================================================
 
             const sessionData = {
-                date: new Date().toISOString().slice(0, 1, 10),
+                date: sessionDate, // Armazena a data informada pelo usuário
+                startTime: startTime, // Armazena a hora de início
+                endTime: endTime, // Armazena a hora de fim
                 sessionNumber: activePatient.protocol.sessionCount + 1,
                 intervention: intervention,
                 sudsStart: sudsStart,
@@ -684,95 +706,4 @@
                 const avg = (sum / lastFive.length).toFixed(1);
                 document.getElementById('dashboardSudsAverage').textContent = avg;
             } else {
-                document.getElementById('dashboardSudsAverage').textContent = 'N/A';
-            }
-            
-            // CHAMADA DO NOVO GRÁFICO
-            renderSudsChart();
-
-            const historyList = document.getElementById('sessionHistoryList');
-            historyList.innerHTML = '';
-            
-            if (history.length === 0) {
-                historyList.innerHTML = '<p>Nenhuma sessão registrada para o paciente ativo.</p>';
-            } else {
-                history.forEach(s => {
-                    const diff = s.sudsStart - s.sudsEnd;
-                    const item = document.createElement('div');
-                    item.className = 'patient-item';
-                    item.style.flexDirection = 'column';
-                    item.style.alignItems = 'flex-start';
-                    item.innerHTML = `
-                        <strong>Sessão ${s.sessionNumber} (${s.date})</strong><br>
-                        Técnica: ${s.intervention} | S.U.D.s: ${s.sudsStart} &rarr; ${s.sudsEnd} (Alívio: ${diff})<br>
-                        <span style="font-size: 0.9em; color: #666;">Notas (B.6): ${s.notes || 'Nenhuma adaptação registrada.'}</span>
-                    `;
-                    historyList.appendChild(item);
-                });
-            }
-        }
-
-        function showContent(targetId) {
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            document.getElementById(targetId).classList.add('active');
-            
-            document.querySelectorAll('.nav-button').forEach(button => {
-                button.classList.remove('active');
-            });
-            document.querySelector(`.nav-button[data-target="${targetId}"]`).classList.add('active');
-        }
-
-
-        document.addEventListener('DOMContentLoaded', () => {
-            loadPatients();
-            renderPatientList();
-            
-            const storedActivePatientId = localStorage.getItem('activePatientId');
-            if (storedActivePatientId) {
-                const foundPatient = patients.find(p => p.id === storedActivePatientId);
-                if (foundPatient) {
-                    setActivePatient(foundPatient.id);
-                    // Garante que o painel clínico seja visível se um paciente ativo for carregado
-                    document.querySelectorAll('.conditional-nav-button').forEach(button => {
-                        button.style.display = 'inline-block';
-                    });
-                } else {
-                    clearActivePatient();
-                }
-            } else {
-                document.querySelectorAll('.conditional-nav-button').forEach(button => {
-                    button.style.display = 'none';
-                });
-            }
-
-            document.getElementById('addPatientForm').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const name = document.getElementById('patientNameInput').value.trim();
-                if (name) {
-                    const newPatient = {
-                        id: Date.now().toString(),
-                        name: name,
-                        protocol: { name: 'Nenhum', phase: 0, sessionCount: 0, totalSessions: 'N/A' }, 
-                        sessionHistory: []
-                    };
-                    patients.push(newPatient);
-                    savePatients();
-                    document.getElementById('patientNameInput').value = '';
-                }
-            });
-
-            document.getElementById('recordSessionForm').addEventListener('submit', recordSession);
-
-            document.querySelectorAll('.nav-button').forEach(button => {
-                button.addEventListener('click', () => {
-                    const target = button.getAttribute('data-target');
-                    showContent(target);
-                });
-            });
-
-        });
-    </script>
-</body>
-</html>
+                document.getElementById('dashboardSudsAverage').textContent = '
